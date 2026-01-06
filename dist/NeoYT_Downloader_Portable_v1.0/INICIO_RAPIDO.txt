@@ -1,0 +1,17 @@
+═══════════════════════════════════════════════
+  INÍCIO RÁPIDO - NeoYT Downloader
+═══════════════════════════════════════════════
+
+MÉTODO 1 (Recomendado):
+   1. Execute: INSTALADOR_COMPLETO.bat
+   2. Aguarde instalação automática
+   3. Pronto!
+
+MÉTODO 2 (Direto):
+   1. Execute: NeoYT_Downloader_Portable.exe
+   2. Aceite instalar FFmpeg quando perguntado
+   3. Pronto!
+
+═══════════════════════════════════════════════
+💡 Para instruções completas: veja LEIA-ME.txt
+═══════════════════════════════════════════════

@@ -1,0 +1,4 @@
+NeoYT Downloader Portable
+Versão: 1.0
+Build: Portable Edition
+Data: 2026-01-05

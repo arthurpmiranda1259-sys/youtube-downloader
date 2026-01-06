@@ -1,0 +1,508 @@
+<?php
+error_reporting(0);
+ini_set('display_errors', 0);
+
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Content-Type: application/json; charset=UTF-8");
+
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+// Configurações do Banco de Dados
+$host = "mysql.revexa.com.br";
+$db_name = "revexa01";
+$username = "revexa01";
+$password = "mamaco12";
+
+// Conexão
+try {
+    $conn = new PDO("mysql:host=" . $host . ";dbname=" . $db_name, $username, $password);
+    $conn->exec("set names utf8");
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch(PDOException $exception) {
+    echo json_encode(array("error" => "Connection error: " . $exception->getMessage()));
+    exit();
+}
+
+// Helpers
+function getAuthUser() {
+    $headers = [];
+    if (function_exists('apache_request_headers')) {
+        $headers = apache_request_headers();
+    }
+    
+    // Merge with $_SERVER for fallback
+    foreach ($_SERVER as $key => $value) {
+        if (substr($key, 0, 5) <> 'HTTP_') {
+            continue;
+        }
+        $header = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
+        $headers[$header] = $value;
+    }
+
+    $auth = null;
+    if (isset($headers['Authorization'])) $auth = $headers['Authorization'];
+    elseif (isset($headers['authorization'])) $auth = $headers['authorization'];
+    
+    if (!$auth) return null;
+
+    $token = str_replace('Bearer ', '', $auth);
+    return json_decode(base64_decode($token));
+}
+
+function getBarbershopId($conn, $userId) {
+    $stmt = $conn->prepare("SELECT id FROM barbershops WHERE owner_id = ?");
+    $stmt->execute([$userId]);
+    $shop = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $shop ? $shop['id'] : null;
+}
+
+// Roteamento
+try {
+$method = $_SERVER['REQUEST_METHOD'];
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$path = basename($uri);
+$data = json_decode(file_get_contents("php://input"));
+
+// --- ENDPOINTS ---
+
+// PING
+if ($path == 'ping') {
+    echo json_encode(["status" => "ok", "message" => "API is working"]);
+    exit();
+}
+
+// LOGIN
+if ($path == 'login' && $method == 'POST') {
+    $user = $data->username;
+    $pass = $data->password;
+    $passHash = hash('sha256', $pass);
+
+    $stmt = $conn->prepare("SELECT id, role, full_name FROM users WHERE username = ? AND password_hash = ?");
+    $stmt->execute([$user, $passHash]);
+    
+    if ($stmt->rowCount() > 0) {
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $token = base64_encode(json_encode(["id" => $row['id'], "role" => $row['role'], "exp" => time() + 86400]));
+        $barbershopId = ($row['role'] == 'owner') ? getBarbershopId($conn, $row['id']) : null;
+
+        echo json_encode([
+            "token" => $token,
+            "user" => [
+                "id" => $row['id'],
+                "username" => $user,
+                "role" => $row['role'],
+                "fullName" => $row['full_name'],
+                "barbershopId" => $barbershopId
+            ]
+        ]);
+    } else {
+        file_put_contents('debug_log.txt', date('Y-m-d H:i:s') . " [LOGIN FAILED] User: $user\n", FILE_APPEND);
+        http_response_code(401);
+        echo json_encode(["error" => "Invalid credentials"]);
+    }
+}
+
+// DASHBOARD
+elseif ($path == 'dashboard' && $method == 'GET') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    
+    $shopId = getBarbershopId($conn, $user->id);
+    if (!$shopId) { echo json_encode([]); exit(); }
+
+    // Stats
+    $today = date('Y-m-d');
+    
+    // Appointments Today
+    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM appointments WHERE barbershop_id = ? AND DATE(appointment_date) = ?");
+    $stmt->execute([$shopId, $today]);
+    $todayAppointments = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+    // Revenue Today
+    $stmt = $conn->prepare("
+        SELECT SUM(s.price) as revenue 
+        FROM appointments a 
+        JOIN services s ON a.service_id = s.id 
+        WHERE a.barbershop_id = ? AND DATE(a.appointment_date) = ? AND a.status = 'completed'
+    ");
+    $stmt->execute([$shopId, $today]);
+    $todayRevenue = $stmt->fetch(PDO::FETCH_ASSOC)['revenue'] ?? 0;
+
+    // Active Clients (last 30 days)
+    $stmt = $conn->prepare("SELECT COUNT(DISTINCT client_id) as count FROM appointments WHERE barbershop_id = ? AND appointment_date > DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $stmt->execute([$shopId]);
+    $activeClients = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+    echo json_encode([
+        "todayAppointments" => (int)$todayAppointments,
+        "todayRevenue" => (float)$todayRevenue,
+        "activeClients" => (int)$activeClients,
+        "averageRating" => 4.8, // Mock for now
+        "totalReviews" => 0,
+        "confirmedToday" => (int)$todayAppointments // Simplified
+    ]);
+}
+
+// CLIENTS
+elseif ($path == 'clients') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+
+    if ($method == 'GET') {
+        $stmt = $conn->prepare("SELECT * FROM clients WHERE barbershop_id = ? ORDER BY name");
+        $stmt->execute([$shopId]);
+        $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($clients);
+    }
+    elseif ($method == 'POST') {
+        $stmt = $conn->prepare("INSERT INTO clients (barbershop_id, name, phone, email, birth_date, notes) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$shopId, $data->name, $data->phone, $data->email, $data->birthDate, $data->notes]);
+        echo json_encode(["id" => $conn->lastInsertId()]);
+    }
+}
+
+// SERVICES
+elseif ($path == 'services') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+
+    if ($method == 'GET') {
+        $stmt = $conn->prepare("SELECT * FROM services WHERE barbershop_id = ? AND is_active = 1");
+        $stmt->execute([$shopId]);
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+    elseif ($method == 'POST') {
+        $stmt = $conn->prepare("INSERT INTO services (barbershop_id, name, description, price, duration_minutes) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$shopId, $data->name, $data->description, $data->price, $data->durationMinutes]);
+        echo json_encode(["id" => $conn->lastInsertId()]);
+    }
+}
+
+// APPOINTMENTS
+elseif ($path == 'appointments') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+
+    if ($method == 'GET') {
+        $date = $_GET['date'] ?? date('Y-m-d');
+        $query = "
+            SELECT a.*, c.name as client_name, s.name as service_name, s.price, s.duration_minutes, b.name as barber_name
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.id
+            JOIN services s ON a.service_id = s.id
+            LEFT JOIN barbers b ON a.barber_id = b.id
+            WHERE a.barbershop_id = ? AND DATE(a.appointment_date) = ?
+            ORDER BY a.appointment_date
+        ";
+        $stmt = $conn->prepare($query);
+        $stmt->execute([$shopId, $date]);
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+    elseif ($method == 'POST') {
+        $barberId = $data->barberId ?? null;
+        $dateTime = $data->dateTime ?? $data->date ?? null;
+        $stmt = $conn->prepare("INSERT INTO appointments (barbershop_id, client_id, service_id, barber_id, appointment_date, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$shopId, $data->clientId, $data->serviceId, $barberId, $dateTime, 'pending', $data->notes ?? null]);
+        echo json_encode(["id" => $conn->lastInsertId()]);
+    }
+    elseif ($method == 'PUT') {
+        $id = $data->id ?? null;
+        $status = $data->status ?? null;
+        
+        if ($status) {
+            // Update status only
+            $stmt = $conn->prepare("UPDATE appointments SET status = ? WHERE id = ? AND barbershop_id = ?");
+            $stmt->execute([$status, $id, $shopId]);
+        } else {
+            // Update full appointment
+            $stmt = $conn->prepare("UPDATE appointments SET client_id = ?, service_id = ?, appointment_date = ?, notes = ? WHERE id = ? AND barbershop_id = ?");
+            $stmt->execute([$data->clientId, $data->serviceId, $data->date, $data->notes, $id, $shopId]);
+        }
+        echo json_encode(["success" => true]);
+    }
+    elseif ($method == 'DELETE') {
+        $id = $_GET['id'] ?? null;
+        $stmt = $conn->prepare("DELETE FROM appointments WHERE id = ? AND barbershop_id = ?");
+        $stmt->execute([$id, $shopId]);
+        echo json_encode(["success" => true]);
+    }
+}
+
+// UPDATE CLIENT
+elseif (preg_match('/clients\/(\d+)/', $path, $matches) && $method == 'PUT') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+    $clientId = $matches[1];
+    
+    $stmt = $conn->prepare("UPDATE clients SET name = ?, phone = ?, email = ?, birth_date = ?, notes = ? WHERE id = ? AND barbershop_id = ?");
+    $stmt->execute([$data->name, $data->phone, $data->email, $data->birthDate, $data->notes, $clientId, $shopId]);
+    echo json_encode(["success" => true]);
+}
+
+// UPDATE SERVICE
+elseif (preg_match('/services\/(\d+)/', $path, $matches) && $method == 'PUT') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+    $serviceId = $matches[1];
+    
+    $stmt = $conn->prepare("UPDATE services SET name = ?, description = ?, price = ?, duration_minutes = ? WHERE id = ? AND barbershop_id = ?");
+    $stmt->execute([$data->name, $data->description, $data->price, $data->durationMinutes, $serviceId, $shopId]);
+    echo json_encode(["success" => true]);
+}
+
+// BARBEIROS
+elseif ($path == 'barbers') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+
+    if ($method == 'GET') {
+        $stmt = $conn->prepare("SELECT * FROM barbers WHERE barbershop_id = ? AND is_active = 1 ORDER BY name");
+        $stmt->execute([$shopId]);
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+    elseif ($method == 'POST') {
+        $commission = $data->commission_percentage ?? $data->commissionPercentage ?? 50;
+        $stmt = $conn->prepare("INSERT INTO barbers (barbershop_id, name, phone, commission_percentage) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$shopId, $data->name, $data->phone, $commission]);
+        echo json_encode(["id" => $conn->lastInsertId()]);
+    }
+}
+
+// PAYMENTS
+elseif ($path == 'payments') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+
+    if ($method == 'GET') {
+        $startDate = $_GET['start'] ?? date('Y-m-01');
+        $endDate = $_GET['end'] ?? date('Y-m-d');
+        
+        $query = "SELECT p.*, a.appointment_date, c.name as client_name, s.name as service_name 
+                  FROM payments p
+                  JOIN appointments a ON p.appointment_id = a.id
+                  JOIN clients c ON a.client_id = c.id
+                  JOIN services s ON a.service_id = s.id
+                  WHERE p.barbershop_id = ? AND DATE(p.payment_date) BETWEEN ? AND ?
+                  ORDER BY p.payment_date DESC";
+        $stmt = $conn->prepare($query);
+        $stmt->execute([$shopId, $startDate, $endDate]);
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+    }
+    elseif ($method == 'POST') {
+        $stmt = $conn->prepare("INSERT INTO payments (barbershop_id, appointment_id, amount, payment_method, payment_date) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$shopId, $data->appointmentId, $data->amount, $data->paymentMethod, $data->paymentDate ?? date('Y-m-d H:i:s')]);
+        
+        // Update appointment status to completed
+        $stmt = $conn->prepare("UPDATE appointments SET status = 'completed' WHERE id = ?");
+        $stmt->execute([$data->appointmentId]);
+        
+        echo json_encode(["id" => $conn->lastInsertId()]);
+    }
+}
+
+// REPORTS
+elseif ($path == 'reports') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+    
+    $startDate = $_GET['start'] ?? date('Y-m-01');
+    $endDate = $_GET['end'] ?? date('Y-m-d');
+    
+    // Revenue by period
+    $stmt = $conn->prepare("
+        SELECT SUM(p.amount) as total_revenue, COUNT(p.id) as total_payments
+        FROM payments p
+        WHERE p.barbershop_id = ? AND DATE(p.payment_date) BETWEEN ? AND ?
+    ");
+    $stmt->execute([$shopId, $startDate, $endDate]);
+    $revenue = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Most sold services
+    $stmt = $conn->prepare("
+        SELECT s.name, COUNT(a.id) as count, SUM(s.price) as revenue
+        FROM appointments a
+        JOIN services s ON a.service_id = s.id
+        WHERE a.barbershop_id = ? AND DATE(a.appointment_date) BETWEEN ? AND ? AND a.status = 'completed'
+        GROUP BY s.id, s.name
+        ORDER BY count DESC
+        LIMIT 5
+    ");
+    $stmt->execute([$shopId, $startDate, $endDate]);
+    $topServices = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Payment methods
+    $stmt = $conn->prepare("
+        SELECT payment_method, COUNT(*) as count, SUM(amount) as total
+        FROM payments
+        WHERE barbershop_id = ? AND DATE(payment_date) BETWEEN ? AND ?
+        GROUP BY payment_method
+    ");
+    $stmt->execute([$shopId, $startDate, $endDate]);
+    $paymentMethods = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    echo json_encode([
+        "revenue" => $revenue,
+        "topServices" => $topServices,
+        "paymentMethods" => $paymentMethods,
+    ]);
+}
+
+// SETTINGS
+elseif ($path == 'settings') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+    
+    if ($method == 'GET') {
+        $stmt = $conn->prepare("SELECT * FROM barbershops WHERE id = ?");
+        $stmt->execute([$shopId]);
+        echo json_encode($stmt->fetch(PDO::FETCH_ASSOC));
+    }
+    elseif ($method == 'PUT') {
+        $stmt = $conn->prepare("UPDATE barbershops SET name = ?, phone = ?, address = ?, opening_hours = ? WHERE id = ?");
+        $stmt->execute([$data->name, $data->phone, $data->address, $data->openingHours, $shopId]);
+        echo json_encode(["success" => true]);
+    }
+}
+
+// REVIEWS
+elseif ($path == 'reviews') {
+    $user = getAuthUser();
+    if (!$user) { http_response_code(403); exit(); }
+    $shopId = getBarbershopId($conn, $user->id);
+
+    if ($method == 'GET') {
+        $query = "SELECT r.*, c.name as client_name 
+                  FROM reviews r
+                  JOIN appointments a ON r.appointment_id = a.id
+                  JOIN clients c ON r.client_id = c.id
+                  WHERE a.barbershop_id = ?
+                  ORDER BY r.created_at DESC";
+        $stmt = $conn->prepare($query);
+        $stmt->execute([$shopId]);
+        
+        $reviews = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $reviews[] = [
+                "id" => $row['id'],
+                "appointmentId" => $row['appointment_id'],
+                "client" => ["id" => $row['client_id'], "name" => $row['client_name']],
+                "rating" => (int)$row['rating'],
+                "comment" => $row['comment'],
+                "tags" => json_decode($row['tags']),
+                "createdAt" => $row['created_at']
+            ];
+        }
+        echo json_encode($reviews);
+    }
+    elseif ($method == 'POST') {
+        $appointmentId = $data->appointmentId;
+        $rating = $data->rating;
+        $comment = $data->comment;
+        $tags = json_encode($data->tags);
+
+        $stmtAppt = $conn->prepare("SELECT client_id FROM appointments WHERE id = ?");
+        $stmtAppt->execute([$appointmentId]);
+        
+        if ($stmtAppt->rowCount() > 0) {
+            $appt = $stmtAppt->fetch(PDO::FETCH_ASSOC);
+            $clientId = $appt['client_id'];
+            $stmt = $conn->prepare("INSERT INTO reviews (appointment_id, client_id, rating, comment, tags) VALUES (?, ?, ?, ?, ?)");
+            if($stmt->execute([$appointmentId, $clientId, $rating, $comment, $tags])) {
+                echo json_encode(["message" => "Review created"]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["error" => "Failed"]);
+            }
+        }
+    }
+}
+
+// USERS (Admin only)
+elseif ($path == 'users' && $method == 'POST') {
+    $currentUser = getAuthUser();
+    if (!$currentUser || $currentUser->role !== 'admin') {
+        http_response_code(403);
+        echo json_encode(["error" => "Unauthorized"]);
+        exit();
+    }
+
+    $name = $data->name ?? '';
+    $password = $data->password ?? '';
+    $shopName = $data->barbershopName ?? 'Minha Barbearia';
+    $shopPhone = $data->barbershopPhone ?? '';
+
+    if (empty($name) || empty($password) || empty($shopName) || empty($shopPhone)) {
+        http_response_code(400);
+        echo json_encode(["error" => "Missing required fields"]);
+        exit();
+    }
+
+    // Generate unique username from barbershop name
+    $baseUsername = preg_replace('/[^a-z0-9]/', '', strtolower($shopName));
+    $username = $baseUsername;
+    $counter = 1;
+    
+    $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    while ($stmt->rowCount() > 0) {
+        $username = $baseUsername . $counter;
+        $counter++;
+        $stmt = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+    }
+
+    try {
+        $conn->beginTransaction();
+
+        // Create User
+        $passHash = hash('sha256', $password);
+        $stmt = $conn->prepare("INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, 'owner', ?)");
+        $stmt->execute([$username, $passHash, $name]);
+        $userId = $conn->lastInsertId();
+
+        // Create Barbershop
+        $stmt = $conn->prepare("INSERT INTO barbershops (name, owner_id, phone) VALUES (?, ?, ?)");
+        $stmt->execute([$shopName, $userId, $shopPhone]);
+        $shopId = $conn->lastInsertId();
+
+        $conn->commit();
+        echo json_encode([
+            "id" => $userId, 
+            "barbershopId" => $shopId,
+            "username" => $username,
+            "message" => "Barbearia criada! Usuário: $username"
+        ]);
+    } catch (Exception $e) {
+        $conn->rollBack();
+        http_response_code(500);
+        echo json_encode(["error" => $e->getMessage()]);
+    }
+}
+
+else {
+    echo json_encode(["status" => "API Working", "path" => $path]);
+}
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode([
+        "error" => "Internal server error",
+        "message" => $e->getMessage(),
+        "file" => $e->getFile(),
+        "line" => $e->getLine()
+    ]);
+}
+?>

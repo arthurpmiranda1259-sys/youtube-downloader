@@ -1,0 +1,10 @@
+{
+    "hero_image": {
+        "caminho": "assets\/images\/IMG_0753.webp",
+        "tipo": "image\/webp"
+    },
+    "video_principal": {
+        "caminho": "assets\/videos\/video_de_vendas.mp4",
+        "tipo": "video\/mp4"
+    }
+}

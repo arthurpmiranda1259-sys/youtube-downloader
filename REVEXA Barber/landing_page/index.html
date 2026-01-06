@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento Online - Nome da Barbearia</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <!-- O nome da barbearia será preenchido dinamicamente -->
+            <h1 id="barbershop-name">Sua Barbearia</h1>
+            <p id="barbershop-address">Carregando endereço...</p>
+        </header>
+
+        <main>
+            <!-- Step 1: Service Selection -->
+            <section id="step-service">
+                <h2>1. Escolha o Serviço</h2>
+                <div id="service-list" class="list-container">
+                    <!-- Serviços serão carregados aqui via JS -->
+                    <div class="loader"></div>
+                </div>
+            </section>
+
+            <!-- Step 2: Date and Time Selection -->
+            <section id="step-datetime" class="hidden">
+                <h2>2. Escolha a Data e Hora</h2>
+                <input type="date" id="date-picker">
+                <div id="availability-list" class="list-container">
+                     <!-- Horários disponíveis serão carregados aqui -->
+                </div>
+                 <button class="back-button" data-step="service">Voltar</button>
+            </section>
+
+            <!-- Step 3: Client Details -->
+            <section id="step-details" class="hidden">
+                <h2>3. Seus Dados</h2>
+                <form id="client-form">
+                    <input type="text" id="client-name" placeholder="Nome Completo" required>
+                    <input type="tel" id="client-phone" placeholder="Telefone (WhatsApp)" required>
+                    <input type="email" id="client-email" placeholder="E-mail (Opcional)">
+                </form>
+                 <button class="back-button" data-step="datetime">Voltar</button>
+                <button id="submit-details-button" class="cta-button">Continuar</button>
+            </section>
+
+            <!-- Step 4: Checkout/Confirmation -->
+            <section id="step-checkout" class="hidden">
+                <h2>4. Confirmação e Pagamento</h2>
+                <div id="booking-summary" class="summary-card">
+                    <!-- Resumo do agendamento será inserido aqui -->
+                </div>
+                <h3>Forma de Pagamento</h3>
+                <div id="payment-method" class="payment-options">
+                    <div class="payment-option" data-method="pix">
+                        <img src="https://logopng.com.br/logos/pix-106.png" alt="PIX">
+                        <span>PIX</span>
+                    </div>
+                    <div class="payment-option" data-method="dinheiro">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1570/1570839.png" alt="Dinheiro">
+                        <span>Dinheiro</span>
+                    </div>
+                    <div class="payment-option" data-method="cartao">
+                         <img src="https://cdn-icons-png.flaticon.com/512/633/633464.png" alt="Cartão">
+                        <span>Cartão</span>
+                    </div>
+                </div>
+                <div id="pix-instructions" class="hidden">
+                    <h4>Pagamento com PIX</h4>
+                    <p>Chave PIX: <strong id="pix-key"></strong></p>
+                    <a href="#" id="pix-whatsapp-link" target="_blank" class="cta-button">
+                        Pague e envie o comprovante
+                    </a>
+                    <p class="pix-note">Seu horário só será confirmado após o envio do comprovante.</p>
+                </div>
+                 <button class="back-button" data-step="details">Voltar</button>
+                <button id="confirm-booking-button" class="cta-button">Finalizar Agendamento</button>
+            </section>
+
+            <!-- Step 5: Success -->
+            <section id="step-success" class="hidden">
+                <h2>Agendamento Confirmado!</h2>
+                <p>Obrigado por agendar conosco!</p>
+                <p>Você receberá uma confirmação no WhatsApp em breve.</p>
+                <div id="success-summary" class="summary-card"></div>
+                <button id="new-booking-button" class="cta-button">Fazer novo agendamento</button>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+
+    <div id="notification-container"></div>
+</body>
+</html>

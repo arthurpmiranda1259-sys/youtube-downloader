@@ -1,0 +1,22 @@
+# Configuracao basica
+Options -Indexes +FollowSymLinks
+DirectoryIndex index.php login.php
+
+# Protecao de arquivos sensiveis
+<FilesMatch "config\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<FilesMatch "\.db$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# PHP settings
+<IfModule mod_php7.c>
+    php_flag display_errors Off
+    php_value upload_max_filesize 10M
+    php_value post_max_size 10M
+    php_value max_execution_time 300
+</IfModule>

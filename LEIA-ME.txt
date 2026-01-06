@@ -1,0 +1,197 @@
+═══════════════════════════════════════════════════════════════════
+  🎬 NeoYT Downloader - Versão PORTABLE 
+═══════════════════════════════════════════════════════════════════
+
+📦 CONTEÚDO DO PACOTE:
+   • NeoYT_Downloader_Portable.exe  ← Executável principal
+   • INSTALADOR_COMPLETO.bat        ← Instala FFmpeg automaticamente
+   • LEIA-ME.txt                    ← Este arquivo
+
+═══════════════════════════════════════════════════════════════════
+
+🚀 INSTALAÇÃO RÁPIDA (Recomendada)
+
+   1. Execute: INSTALADOR_COMPLETO.bat (como Administrador)
+   2. Aguarde a instalação do FFmpeg (~2 minutos)
+   3. Pronto! O app abrirá automaticamente
+
+═══════════════════════════════════════════════════════════════════
+
+⚡ INSTALAÇÃO MANUAL (Avançado)
+
+   1. Execute: NeoYT_Downloader_Portable.exe
+   2. Na primeira vez, aceite instalar FFmpeg quando perguntado
+   3. Pronto!
+
+═══════════════════════════════════════════════════════════════════
+
+✅ VANTAGENS DESTA VERSÃO
+
+   ✅ 100% PORTABLE - Funciona de pen drive/USB
+   ✅ ZERO instalação - Não modifica o Windows
+   ✅ Python EMBUTIDO - Não precisa instalar Python
+   ✅ yt-dlp INCLUÍDO - Sempre atualizado
+   ✅ Auto-instala FFmpeg - Instalação automática
+   ✅ Sem dependências - Tudo em um arquivo
+
+═══════════════════════════════════════════════════════════════════
+
+📋 REQUISITOS MÍNIMOS
+
+   • Windows 10 ou 11 (64-bit)
+   • 2 GB RAM
+   • 500 MB espaço livre
+   • Conexão com internet
+
+═══════════════════════════════════════════════════════════════════
+
+🎯 COMO USAR
+
+   1. ABRIR: Execute o .exe
+   
+   2. COLAR URL: 
+      • YouTube: https://youtube.com/watch?v=...
+      • Playlists: https://youtube.com/playlist?list=...
+      • Outros: Vimeo, Dailymotion, etc.
+   
+   3. ESCOLHER FORMATO:
+      • Vídeo: MP4, MKV, WEBM, AVI, MOV
+      • Áudio: MP3, AAC, OPUS, M4A, FLAC, WAV
+   
+   4. QUALIDADE:
+      • Vídeo: 8K, 4K, 1080p, 720p, 480p, 360p, 240p
+      • Áudio: 320kbps, 256kbps, 192kbps, 128kbps, 96kbps
+   
+   5. OPÇÕES EXTRAS:
+      ☑ Incluir Thumbnail (capa do vídeo)
+      ☑ Incluir Metadados (título, artista, etc)
+      ☑ Baixar Playlist Completa (todos os vídeos)
+      ☑ Usar cookies (para vídeos privados)
+   
+   6. BAIXAR: Clique em "⚡ BAIXAR AGORA ⚡"
+
+═══════════════════════════════════════════════════════════════════
+
+🎨 FUNCIONALIDADES
+
+   📥 Downloads:
+      • Vídeos individuais
+      • Playlists completas (paralelo - 20 ao mesmo tempo!)
+      • Canais inteiros
+      • Múltiplas URLs de uma vez
+
+   🎬 Formatos de Vídeo:
+      • MP4 (mais compatível)
+      • MKV (melhor qualidade)
+      • WEBM (menor tamanho)
+      • AVI, MOV
+
+   🎵 Formatos de Áudio:
+      • MP3 (mais compatível)
+      • AAC (boa qualidade)
+      • OPUS (melhor compressão)
+      • M4A, FLAC (sem perda)
+      • WAV (sem compressão)
+
+   📸 Extras:
+      • Embed thumbnail (capa no arquivo)
+      • Metadados completos
+      • Legendas automáticas
+      • Cookies de navegador
+
+═══════════════════════════════════════════════════════════════════
+
+🔧 PERGUNTAS FREQUENTES
+
+   ❓ Por que o antivírus bloqueia?
+   ✅ Falso positivo comum em executáveis Python
+      Solução: Adicione à lista de exceções
+
+   ❓ Por que demora para abrir?
+   ✅ Normal na primeira execução (~10 segundos)
+      O Windows extrai arquivos temporários
+
+   ❓ Precisa de Python instalado?
+   ✅ NÃO! Python já está embutido no .exe
+
+   ❓ Precisa de internet?
+   ✅ Somente para fazer os downloads
+      O app funciona offline (exceto download)
+
+   ❓ Por que precisa do FFmpeg?
+   ✅ Para mesclar vídeo + áudio de alta qualidade
+      Sem ele, limitado a 720p
+
+   ❓ Como atualizar o yt-dlp?
+   ✅ O app verifica e instala automaticamente
+
+   ❓ Funciona em qualquer computador?
+   ✅ SIM! Basta ter Windows 10/11 64-bit
+
+   ❓ Posso rodar de pen drive?
+   ✅ SIM! É 100% portable
+
+═══════════════════════════════════════════════════════════════════
+
+⚠️ TROUBLESHOOTING
+
+   🔴 "FFmpeg não encontrado"
+      → Execute INSTALADOR_COMPLETO.bat
+      → Ou aceite instalação quando o app perguntar
+
+   🔴 "Erro ao baixar"
+      → Verifique sua conexão com internet
+      → Tente URL diferente
+      → Verifique se o vídeo é público
+
+   🔴 "Acesso negado"
+      → Marque "Usar cookies do navegador"
+      → Login no YouTube antes
+
+   🔴 Baixa em 360p mesmo escolhendo 4K
+      → FFmpeg não está instalado
+      → Execute INSTALADOR_COMPLETO.bat
+
+═══════════════════════════════════════════════════════════════════
+
+📊 COMPARAÇÃO: COM vs SEM FFmpeg
+
+   SEM FFmpeg:
+      ❌ Limitado a 720p
+      ❌ Só formatos pré-mesclados
+      ✅ Mais rápido
+      ✅ Menor tamanho
+
+   COM FFmpeg:
+      ✅ Até 8K/4K
+      ✅ Todos os formatos
+      ✅ Melhor qualidade
+      ✅ Mais opções
+      ⏳ Um pouco mais lento (mesclagem)
+
+   RECOMENDAÇÃO: Instale o FFmpeg! 
+
+═══════════════════════════════════════════════════════════════════
+
+📞 SUPORTE
+
+   Problemas? Dúvidas? Sugestões?
+   
+   • Verifique este README primeiro
+   • Tente reinstalar o FFmpeg
+   • Execute como Administrador
+   • Desative antivírus temporariamente
+
+═══════════════════════════════════════════════════════════════════
+
+📜 LICENÇA & CRÉDITOS
+
+   • yt-dlp: https://github.com/yt-dlp/yt-dlp
+   • FFmpeg: https://ffmpeg.org
+   • Python: https://python.org
+
+   Desenvolvido com ❤️ para simplificar sua vida!
+
+═══════════════════════════════════════════════════════════════════
+
+Aproveite o NeoYT Downloader! 🚀

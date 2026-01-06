@@ -1,0 +1,117 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Permite executar manualmente
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: 📥 Checkout código
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Configurar Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: 📦 Instalar dependências
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install yt-dlp
+    
+    - name: 🔨 Compilar EXE
+      run: |
+        python build_exe.py
+    
+    - name: 📋 Listar arquivos gerados
+      run: |
+        dir dist
+        if (Test-Path "dist/NeoYT_Downloader_Portable.exe") {
+          Write-Host "✅ EXE criado com sucesso!"
+          $size = (Get-Item "dist/NeoYT_Downloader_Portable.exe").Length / 1MB
+          Write-Host "📊 Tamanho: $([math]::Round($size, 2)) MB"
+        } else {
+          Write-Host "❌ EXE não encontrado!"
+          exit 1
+        }
+      shell: pwsh
+    
+    - name: 📦 Criar pacote de distribuição
+      run: python create_package.py
+    
+    - name: 📤 Upload do EXE
+      uses: actions/upload-artifact@v4
+      with:
+        name: NeoYT-Downloader-EXE
+        path: dist/NeoYT_Downloader_Portable.exe
+        retention-days: 30
+    
+    - name: 📤 Upload do pacote completo
+      uses: actions/upload-artifact@v4
+      with:
+        name: NeoYT-Downloader-Package
+        path: dist/NeoYT_Downloader_Portable_v1.0.zip
+        retention-days: 90
+    
+    - name: ✅ Resumo
+      run: |
+        Write-Host ""
+        Write-Host "============================================"
+        Write-Host "✅ BUILD CONCLUÍDO COM SUCESSO!"
+        Write-Host "============================================"
+        Write-Host ""
+        Write-Host "📦 Arquivos disponíveis em 'Artifacts':"
+        Write-Host "   • NeoYT_Downloader_Portable.exe"
+        Write-Host "   • NeoYT_Downloader_Portable_v1.0.zip"
+        Write-Host ""
+        Write-Host "💾 Para baixar:"
+        Write-Host "   1. Vá em 'Actions' no GitHub"
+        Write-Host "   2. Clique neste workflow"
+        Write-Host "   3. Baixe os 'Artifacts'"
+        Write-Host ""
+      shell: pwsh
+
+  # Job opcional: criar release automática em tags
+  create-release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: 📥 Baixar artefatos
+      uses: actions/download-artifact@v4
+      with:
+        name: NeoYT-Downloader-Package
+    
+    - name: 🚀 Criar Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: NeoYT_Downloader_Portable_v1.0.zip
+        body: |
+          ## 🎬 NeoYT Downloader - Release Automática
+          
+          ### 📦 Download
+          Baixe o arquivo ZIP abaixo e siga as instruções no LEIA-ME.txt
+          
+          ### ✨ Características
+          - ✅ 100% Portable (não precisa instalar)
+          - ✅ Python embutido
+          - ✅ yt-dlp incluído
+          - ✅ Auto-instala FFmpeg
+          - ✅ Interface premium
+          
+          ### 🚀 Como usar
+          1. Baixe o ZIP
+          2. Extraia a pasta
+          3. Execute `INSTALADOR_COMPLETO.bat`
+          4. Pronto!
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

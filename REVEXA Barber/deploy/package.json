@@ -1,0 +1,14 @@
+{
+  "name": "revexa-deploy",
+  "version": "1.0.0",
+  "description": "Deployment script for Revexa Barber",
+  "main": "deploy.js",
+  "scripts": {
+    "deploy": "node deploy.js"
+  },
+  "dependencies": {
+    "basic-ftp": "^5.0.4",
+    "dotenv": "^16.3.1",
+    "prompt-sync": "^4.2.0"
+  }
+}
