@@ -1,0 +1,34 @@
+# Ignorar TUDO exceto o projeto YouTube Downloader
+/*
+
+# Permitir apenas arquivos do projeto
+!youtube_downloader_gui.py
+!build_exe.py
+!create_package.py
+!publicar_github.sh
+!requirements_build.txt
+!INSTALADOR_COMPLETO.bat
+!LEIA-ME.txt
+!BUILD_README.md
+!COMPILAR_GUIA.md
+!README.md
+
+# Permitir .github/workflows
+!.github/
+.github/*
+!.github/workflows/
+!.github/workflows/*.yml
+!.github/workflows/*.md
+
+# Ignorar arquivos de build
+build/
+dist/
+__pycache__/
+*.pyc
+*.spec
+
+# Ignorar projetos pessoais
+REVEXA*/
+Renato/
+NeoYT+/
+imagevef/
